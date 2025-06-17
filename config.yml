@@ -1,122 +1,46 @@
+# 路径配置
+session_path: "session"  # 会话存档路径
+log_path: "logs"        # 日志文件路径
+export_path: "export"   # 导出文件路径
+face_image_path: "imgs" # 人脸图片路径
+
 # 基本配置
+multi_session: true     # 是否允许多会话
+tui_max_height: 25      # TUI界面最大高度
+mask_acc: true         # 是否隐藏账号信息
+fetch_uploaded_face: true  # 是否获取已上传的人脸图片
 
-# 是否开启多会话模式
-multi_session: true
-# 是否开启姓名手机号打码
-mask_acc: true
-# TUI 最大显示高度 null: 自适应高度
-tui_max_height: 25
-# 尝试拉取预先上传的人脸图片
-fetch_uploaded_face: true
-# 会话存档路径
-session_path: "session/"
-# 日志文件路径
-log_path: "logs/"
-# 试题导出路径
-export_path: "export/"
-# 人脸图片路径
-face_image_path: "faces/"
-
-# --------------------
-
-# 任务执行器配置
-# 视频
-video:
-  # 使能
-  enable: true
-  # 完成等待时间
-  wait: 15
-  # 倍速
-  speed: 1.0
-  # 视频播放汇报率 (没事别改)
-  report_rate: 58
-
-# 作业 (章节测验)
+# 作业配置
 work:
-  # 使能
-  enable: true
-  # 是否进行试题导出 可以将 `enable`设置为 false, 从而进行 dry run
-  export: false
-  # 完成等待时间
-  wait: 15
-  # 未匹配选项是否随机选择
-  fallback_fuzzer: false
-  # 作答失败后是否保存
-  fallback_save: true
+  enable: true         # 是否启用作业功能
+  wait: 15            # 作业完成后等待时间(秒)
+  export: false       # 是否导出作业
+  fallback_save: true # 是否保存未完成的作业
+  fallback_fuzzer: true  # 是否启用模糊匹配
 
-# 文档
+# 视频配置
+video:
+  enable: true        # 是否启用视频功能
+  wait: 15           # 视频完成后等待时间(秒)
+  speed: 2.0         # 视频播放速度
+  report_rate: 1     # 视频上报频率(秒)
+
+# 文档配置
 document:
-  # 使能
-  enable: true
-  # 完成等待时间
-  wait: 15
+  enable: true       # 是否启用文档功能
+  wait: 15          # 文档完成后等待时间(秒)
 
-# 考试
+# 考试配置
 exam:
-  # 未匹配选项是否随机选择
-  fallback_fuzzer: false
-  # 提交前延迟时间
-  persubmit_delay: 15
-  # 是否需要交互式确认交卷 自动交卷: false 手动确认: true
-  confirm_submit: true
+  enable: true      # 是否启用考试功能
+  confirm_submit: true  # 是否确认交卷
+  fallback_fuzzer: true  # 是否启用模糊匹配
+  persubmit_delay: 1    # 每题提交延迟(秒)
 
-# --------------------
-
-# 搜索器选择 (可同时使用多个搜索器, 以 yaml 语法中 list 格式添加, `type`字段决定搜索器类型)
-# 可用的搜索器有: restApiSearcher jsonFileSearcher sqliteSearcher enncySearcher cxSearcher LemonSearcher
+# 搜索器配置
 searchers:
-  # 本地 JSON 数据库搜索器 (key为题, value为答案)
-  # - type: jsonFileSearcher
-  #   file_path: "questions.json"  # 数据库文件路径
-
-  # REST API 在线搜题
-  # - type: restApiSearcher
-  #   url: "http://10.50.9.10:8088/question/search"  # API URL 请进行替换
-  #   method: "POST"  # 请求方式
-  #   q_field: "question"  # 题目文本参数
-  #   o_field: null  # 选项文本参数 (可选)  用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 
-  #   headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Authorization: 'xxx'
-  #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Token: 'xxx'
-  #   a_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
-
-  # Json API 在线搜题
-  # - type: JsonApiSearcher
-  #   url: "http://10.50.9.10:8088/question/search"  # API URL 请进行替换
-  #   q_field: "question"  # 题目参数名称
-  #   o_field: null  # 选项参数名称 (可选)  填写为用`#`分隔数据, 用来进一步匹配答案 (格式：选项A#选项B#选项C) 不填为{"A":"xxx","B":"xxx","C":"xxx","D":"xxx"}
-  #   headers:  # 自定义请求头 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Authorization: 'xxx'
-  #   ext_params: # 自定义扩展请求参数 (可选) 使用 yaml 的 k-v 语法填写
-  #     # eg: Token: 'xxx'
-  #   a_field: "$.data"  # 返回参数 使用 JSONPath 语法进行查询
-  
-  # 本地 sqlite 数据库搜索器
-  # - type: sqliteSearcher
-  #   file_path: "questions.db"  # 数据库文件路径
-  #   table: "question"  # 表名
-  #   req_field: "question"  # 请求字段
-  #   rsp_field: "answer"  # 返回字段
-
-  # Enncy 题库搜索器，使用前请注册 https://tk.enncy.cn/
-  # - type: enncySearcher
-  #   token: "xxx"  # Enncy 题库 Token
-  
-  # 网课小工具(Go题)题库搜索器，使用前请获取Token https://cx.icodef.com/1-UserGuide/1-6-gettoken.html#%E8%8E%B7%E5%8F%96token
-  # - type: cxSearcher
-  #   token: "xxx"  # 网课小工具(Go题)题库 Token
-  # 题库海搜索源， 暂时可不用token 如若搜索失败 https://afdian.net/a/jiaoyu666 购买token
-  # - type: TiKuHaiSearcher
-  #   token: ***
-
-  # 冷月题库, 免费限制4秒一次请求
-  # - type: LyCk6Searcher
-  #   token: ***
-
-  # Muke题库
-  # - type: MukeSearcher
-  
-  # 柠檬题库搜索器，使用前请注册 https://www.lemtk.xyz 获取token
-  # - type: LemonSearcher
-  #   token: "xxx"
+  - "cxmooc"        # 超星慕课
+  - "cxmooc-tiku"   # 超星慕课题库
+  - "tampermonkey"  # Tampermonkey
+  - "chaoxing"      # 超星
+  - "chaoxing-tiku" # 超星题库

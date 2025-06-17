@@ -27,7 +27,11 @@ API_CAPTCHA_IMG = "https://mooc1-api.chaoxing.com/processVerifyPng.ac"
 # 接口-提交验证码并重定向至原请求
 API_CAPTCHA_SUBMIT = "https://mooc1-api.chaoxing.com/html/processVerify.ac"
 
-ocr = DdddOcr(show_ad=False)
+try:
+    ocr = DdddOcr(show_ad=False)
+except Exception as e:
+    print(f"OCR 初始化失败: {e}")
+    ocr = None
 
 
 class SpecialPageType(Enum):
@@ -45,6 +49,9 @@ def identify_captcha(captcha_img: bytes) -> str:
     Returns:
         str: 识别的验证码文本
     """
+    if ocr is None:
+        return input("请输入验证码: ")
+        
     img = np.frombuffer(captcha_img, np.uint8)
     img = cv2.imdecode(img, cv2.IMREAD_GRAYSCALE)
 

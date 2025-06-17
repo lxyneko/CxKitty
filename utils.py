@@ -8,13 +8,7 @@ from typing import Optional
 import config
 from cxapi.schema import AccountInfo
 
-__version__ = (
-    Path("pyproject.toml")
-    .read_text(encoding="utf8")
-    .split("version = ")[1]
-    .split("\n")[0]
-    .strip('"')
-)
+__version__ = "1.0.0"  # 直接设置版本号
 
 @dataclass
 class SessionModule:

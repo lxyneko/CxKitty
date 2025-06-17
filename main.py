@@ -3,6 +3,7 @@ import json
 import sys
 import time
 from os import PathLike
+from typing import Any
 
 from rich.align import Align
 from rich.console import Console
@@ -42,7 +43,7 @@ lay_session_notice = Layout(name="session_notice", size=6)
 lay_right.update(lay_right_content)
 
 
-def task_wait(tui_ctx: Layout, wait_sec: int, text: str):
+def task_wait(tui_ctx: Any, wait_sec: int, text: str) -> None:
     """课间等待, 防止风控"""
     tui_ctx.unsplit()
     for i in range(wait_sec):
@@ -57,7 +58,7 @@ def task_wait(tui_ctx: Layout, wait_sec: int, text: str):
         time.sleep(1.0)
 
 
-def on_captcha_after(times: int):
+def on_captcha_after(times: int) -> None:
     """识别验证码开始 回调"""
     if layout.get("session_notice") is None:
         lay_right.split_column(lay_right_content, lay_session_notice)
@@ -70,7 +71,7 @@ def on_captcha_after(times: int):
     )
 
 
-def on_captcha_before(status: bool, code: str):
+def on_captcha_before(status: bool, code: str) -> None:
     """验证码识别成功 回调"""
     if status is True:
         lay_session_notice.update(
@@ -93,7 +94,7 @@ def on_captcha_before(status: bool, code: str):
         time.sleep(1.0)
 
 
-def on_face_detection_after(orig_url):
+def on_face_detection_after(orig_url: str) -> None:
     """人脸识别开始 回调"""
     if layout.get("captcha") is None:
         lay_right.split_column(lay_right_content, lay_session_notice)
@@ -106,7 +107,7 @@ def on_face_detection_after(orig_url):
     )
 
 
-def on_face_detection_before(object_id: str, image_path: PathLike):
+def on_face_detection_before(object_id: str, image_path: PathLike) -> None:
     """人脸识别成功 回调"""
     lay_session_notice.update(
         Panel(
@@ -119,13 +120,13 @@ def on_face_detection_before(object_id: str, image_path: PathLike):
     lay_right.unsplit()
 
 
-def fuck_task_worker(chap: ChapterContainer):
+def fuck_task_worker(chap: ChapterContainer) -> None:
     """章节任务点处理实现
     Args:
         chap: 章节容器对象
     """
 
-    def _show_chapter(index: int):
+    def _show_chapter(index: int) -> None:
         chap.set_tui_index(index)
         lay_right_content.update(
             Panel(
@@ -265,7 +266,7 @@ def fuck_task_worker(chap: ChapterContainer):
         time.sleep(5.0)
 
 
-def fuck_exam_worker(exam: ExamDto, export=False):
+def fuck_exam_worker(exam: ExamDto, export: bool = False) -> None:
     """考试处理实现
     Args:
         exam: 考试接口对象
@@ -306,7 +307,7 @@ def fuck_exam_worker(exam: ExamDto, export=False):
         if config.EXAM["confirm_submit"] is True:
 
             @resolver.reg_confirm_submit_cb
-            def confirm(completed_cnt, incompleted_cnt, mistakes, exam_dto):
+            def confirm(completed_cnt: int, incompleted_cnt: int, mistakes: list, exam_dto: ExamDto) -> bool:
                 live.stop()
                 if (
                     Prompt.ask(
@@ -351,47 +352,78 @@ if __name__ == "__main__":
     logger.info("\n-----*任务开始执行*-----")
     logger.info(f"Ver. {__version__}")
     dialog.accinfo(console, api)
-    try:
-        # 拉取预先上传的人脸图片
-        if config.FETCH_UPLOADED_FACE is True:
-            if face_url := api.fetch_face():
-                api.save_face(face_url, config.FACE_PATH)
-        # 拉取该账号下所学的课程
-        classes = api.fetch_classes()
-        # 课程选择交互
-        command = dialog.select_class(console, classes)
-        # 注册验证码 人脸 回调
-        api.session.reg_captcha_after(on_captcha_after)
-        api.session.reg_captcha_before(on_captcha_before)
-        api.session.reg_face_after(on_face_detection_after)
-        api.session.reg_face_before(on_face_detection_before)
-        # 执行课程任务
-        for task_obj in ClassSelector(command, classes):
-            # 章节容器 执行章节任务
-            if isinstance(task_obj, ChapterContainer):
-                fuck_task_worker(task_obj)
+    
+    while True:
+        try:
+            # 拉取预先上传的人脸图片
+            if config.FETCH_UPLOADED_FACE is True:
+                if face_url := api.fetch_face():
+                    api.save_face(face_url, config.FACE_PATH)
+            # 拉取该账号下所学的课程
+            classes = api.fetch_classes()
+            # 课程选择交互
+            command = dialog.select_class(console, classes)
+            
+            # 如果用户选择退出
+            if command == "q":
+                logger.info("\n-----*用户选择退出程序*-----")
+                console.print("[green]感谢使用，再见！")
+                break
+                
+            # 注册验证码 人脸 回调
+            api.session.reg_captcha_after(on_captcha_after)
+            api.session.reg_captcha_before(on_captcha_before)
+            api.session.reg_face_after(on_face_detection_after)
+            api.session.reg_face_before(on_face_detection_before)
+            # 执行课程任务
+            for task_obj in ClassSelector(command, classes):
+                # 章节容器 执行章节任务
+                if isinstance(task_obj, ChapterContainer):
+                    fuck_task_worker(task_obj)
 
-            # 考试对象 执行考试任务
-            elif isinstance(task_obj, ExamDto):
-                fuck_exam_worker(task_obj)
+                # 考试对象 执行考试任务
+                elif isinstance(task_obj, ExamDto):
+                    fuck_exam_worker(task_obj)
 
-            # 考试列表 进入二级选择交互
-            elif isinstance(task_obj, list):
-                exam, export = dialog.select_exam(console, task_obj, api)
-                fuck_exam_worker(exam, export)
+                # 考试列表 进入二级选择交互
+                elif isinstance(task_obj, list):
+                    exam, export = dialog.select_exam(console, task_obj, api)
+                    fuck_exam_worker(exam, export)
+                    
+            # 任务执行完毕后，询问是否继续
+            if Prompt.ask(
+                "当前课程任务已完成，是否继续选择其他课程？",
+                console=console,
+                choices=["y", "n"],
+                default="y"
+            ) != "y":
+                logger.info("\n-----*用户选择退出程序*-----")
+                console.print("[green]感谢使用，再见！")
+                break
 
-    except Exception as err:
-        # 任务异常
-        console.print_exception(show_locals=False)
-        logger.error("\n-----*程序运行异常退出*-----", exc_info=True)
-        if isinstance(err, json.JSONDecodeError):
-            console.print("[red]JSON 解析失败, 可能为账号 ck 失效, 请重新登录该账号 (序号+r)")
-        else:
-            console.print("[bold red]程序运行出现错误, 请截图保存并附上 log 文件在 issue 提交")
-    except KeyboardInterrupt:
-        # 手动中断程序运行
-        console.print("[yellow]手动中断程序运行")
-    else:
-        # 任务执行完毕
-        logger.info("\n-----*任务执行完毕, 程序退出*-----")
-        console.print("[green]任务已完成, 程序退出")
+        except Exception as err:
+            # 任务异常
+            console.print_exception(show_locals=False)
+            logger.error("\n-----*程序运行异常退出*-----", exc_info=True)
+            if isinstance(err, json.JSONDecodeError):
+                console.print("[red]JSON 解析失败, 可能为账号 ck 失效, 请重新登录该账号 (序号+r)")
+            else:
+                console.print("[bold red]程序运行出现错误, 请截图保存并附上 log 文件在 issue 提交")
+            # 询问是否继续
+            if Prompt.ask(
+                "是否继续选择其他课程？",
+                console=console,
+                choices=["y", "n"],
+                default="n"
+            ) != "y":
+                break
+        except KeyboardInterrupt:
+            # 手动中断程序运行
+            console.print("[yellow]手动中断程序运行")
+            if Prompt.ask(
+                "是否继续选择其他课程？",
+                console=console,
+                choices=["y", "n"],
+                default="n"
+            ) != "y":
+                break
