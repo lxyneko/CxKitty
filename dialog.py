@@ -163,8 +163,8 @@ def select_session(tui_ctx: Console, sessions: list[SessionModule], api: ChaoXin
                         continue
                 return
 
-def select_class(tui_ctx: Console, classes: ClassContainer) -> str:
-    "交互-选择课程"
+def select_class(tui_ctx: Console, classes: ClassContainer, acc_sessions=None, api=None) -> str:
+    "交互-选择课程，可切换账号"
     tb = Table("序号", "课程名", "老师名", "课程id", "课程状态", title="所学的课程", border_style="blue")
     for index, cla in enumerate(classes.classes):
         tb.add_row(
@@ -176,10 +176,17 @@ def select_class(tui_ctx: Console, classes: ClassContainer) -> str:
         )
     while True:
         tui_ctx.print(tb)
-        command = Prompt.ask("请输入欲完成的课程 ([yellow]序号/名称/id[/]), 序号前加[yellow]\"EXAM|\"[/]进入考试模式, 输入 [yellow]q[/] 退出", console=tui_ctx)
+        command = Prompt.ask("请输入欲完成的课程 ([yellow]序号/名称/id[/]), 序号前加[yellow]\"EXAM|\"[/]进入考试模式, 输入 [yellow]q[/] 退出, 输入 [yellow]s[/] 切换账号", console=tui_ctx)
         tui_ctx.print("")
         if command == "q":
             sys.exit()
+        elif command == "s":
+            # 切换账号
+            if acc_sessions is not None and api is not None:
+                select_session(tui_ctx, acc_sessions, api)
+                return "__switch_account__"
+            else:
+                tui_ctx.print("[red]未提供会话信息，无法切换账号")
         else:
             return command
 

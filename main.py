@@ -361,9 +361,12 @@ if __name__ == "__main__":
                     api.save_face(face_url, config.FACE_PATH)
             # 拉取该账号下所学的课程
             classes = api.fetch_classes()
-            # 课程选择交互
-            command = dialog.select_class(console, classes)
-            
+            # 课程选择交互，支持切换账号
+            command = dialog.select_class(console, classes, acc_sessions, api)
+            # 切换账号逻辑
+            if command == "__switch_account__":
+                acc_sessions = sessions_load()
+                continue
             # 如果用户选择退出
             if command == "q":
                 logger.info("\n-----*用户选择退出程序*-----")
