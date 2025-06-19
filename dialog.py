@@ -218,25 +218,42 @@ def select_exam(tui_ctx: Console, exams: list[ClassExamModule], api: ChaoXingAPI
         )
     while True:
         tui_ctx.print(tb)
-        command = Prompt.ask("请选择考试对应的序号（[yellow]序号前加e导出[/]）, 输入 [yellow]q[/] 退出", console=tui_ctx)
+        command = Prompt.ask(
+            "请选择考试对应的序号（[yellow]序号前加e导出[/]）, 输入 [yellow]q[/] 退出，输入 [yellow]s[/] 重新选择课程",
+            console=tui_ctx
+        )
         tui_ctx.print("")
+        if not command:  # 空输入
+            tui_ctx.print("[red]输入不能为空，请重新输入。")
+            continue
         if command == "q":
             sys.exit()
-        else:
+        if command == "s":
+            return None, None  # 重新选择课程
+        try:
             if command[0] == "e":
+                if len(command) == 1:
+                    tui_ctx.print("[red]请输入 e 后的考试序号，例如 e0、e1。")
+                    continue
                 export = True
                 exam_index = int(command[1:])
             else:
                 export = False
                 exam_index = int(command)
-            exam = ExamDto(
-                session=api.session,
-                acc=api.acc,
-                exam_id=exams[exam_index].exam_id,
-                course_id=exams[exam_index].course_id,
-                class_id=exams[exam_index].class_id,
-                cpi=exams[exam_index].cpi,
-                enc_task=exams[exam_index].enc_task
-            )
-            return exam, export
+            if not (0 <= exam_index < len(exams)):
+                tui_ctx.print("[red]序号超出范围，请重新输入。")
+                continue
+        except Exception:
+            tui_ctx.print("[red]输入格式错误，请重新输入。")
+            continue
+        exam = ExamDto(
+            session=api.session,
+            acc=api.acc,
+            exam_id=exams[exam_index].exam_id,
+            course_id=exams[exam_index].course_id,
+            class_id=exams[exam_index].class_id,
+            cpi=exams[exam_index].cpi,
+            enc_task=exams[exam_index].enc_task
+        )
+        return exam, export
     

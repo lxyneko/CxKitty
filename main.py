@@ -379,6 +379,7 @@ if __name__ == "__main__":
             api.session.reg_face_after(on_face_detection_after)
             api.session.reg_face_before(on_face_detection_before)
             # 执行课程任务
+            restart_course_select = False
             for task_obj in ClassSelector(command, classes):
                 # 章节容器 执行章节任务
                 if isinstance(task_obj, ChapterContainer):
@@ -391,18 +392,12 @@ if __name__ == "__main__":
                 # 考试列表 进入二级选择交互
                 elif isinstance(task_obj, list):
                     exam, export = dialog.select_exam(console, task_obj, api)
+                    if exam is None and export is None:
+                        restart_course_select = True
+                        break  # 跳出 for 循环
                     fuck_exam_worker(exam, export)
-                    
-            # 任务执行完毕后，询问是否继续
-            if Prompt.ask(
-                "当前课程任务已完成，是否继续选择其他课程？",
-                console=console,
-                choices=["y", "n"],
-                default="y"
-            ) != "y":
-                logger.info("\n-----*用户选择退出程序*-----")
-                console.print("[green]感谢使用，再见！")
-                break
+            if restart_course_select:
+                continue  # 跳回主循环，重新选择课程
 
         except ExamCompleted as e:
             console.print(f"[yellow]考试已完成：{e}，无需重复操作。")
