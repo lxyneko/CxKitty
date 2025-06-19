@@ -51,3 +51,26 @@ jobs:
           name: CxKitty For ${{ runner.os }} x64
           path: |
             out
+      - name: 发布到 Release (Windows)
+        if: runner.os == 'Windows'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/CxKitty.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 发布到 Release (Linux)
+        if: runner.os == 'Linux'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/CxKitty
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 发布到 Release (macOS)
+        if: runner.os == 'macOS'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/CxKitty
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
