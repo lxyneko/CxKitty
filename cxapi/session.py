@@ -67,7 +67,7 @@ def identify_captcha(captcha_img: bytes) -> str:
 
     # 交给 OCR 识别
     _, img_data = cv2.imencode(".png", img)
-    code = ocr.classification(img_data.tostring())
+    code = ocr.classification(img_data.tobytes())
     return code
 
 
