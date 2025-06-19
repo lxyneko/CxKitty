@@ -24,7 +24,7 @@ from cxapi import (
     PointVideoDto,
     PointWorkDto,
 )
-from cxapi.exception import ChapterNotOpened, TaskPointError
+from cxapi.exception import ChapterNotOpened, TaskPointError, ExamCompleted
 from logger import Logger
 from resolver import DocumetResolver, MediaPlayResolver, QuestionResolver
 from utils import __version__, ck2dict, sessions_load
@@ -404,6 +404,16 @@ if __name__ == "__main__":
                 console.print("[green]感谢使用，再见！")
                 break
 
+        except ExamCompleted as e:
+            console.print(f"[yellow]考试已完成：{e}，无需重复操作。")
+            logger.info("考试已完成，跳过本次考试。")
+            if Prompt.ask(
+                "是否继续选择其他课程？",
+                console=console,
+                choices=["y", "n"],
+                default="n"
+            ) != "y":
+                break
         except Exception as err:
             # 任务异常
             console.print_exception(show_locals=False)
