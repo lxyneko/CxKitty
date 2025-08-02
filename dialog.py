@@ -203,7 +203,7 @@ def select_exam(tui_ctx: Console, exams: list[ClassExamModule], api: ChaoXingAPI
     tb = Table("序号", "考试名", "过期时间", "考试id", "考试状态", title="课程考试", border_style="blue")
     for index, exam in enumerate(exams):
         match exam.status:
-            case ExamStatus.未开始:
+            case ExamStatus.未开始 | ExamStatus.待做:
                 status_style = "red"
             case ExamStatus.未交:
                 status_style = "yellow"

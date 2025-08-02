@@ -112,6 +112,7 @@ class QuestionsExportSchema:
 class ExamStatus(Enum):
     "考试完成状态"
     未开始 = "未开始"
+    待做 = "待做"
     未交 = "未交"
     已完成 = "已完成"
 
