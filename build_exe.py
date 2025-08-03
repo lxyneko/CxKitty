@@ -6,7 +6,6 @@ CxKitty 打包脚本
 """
 
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
