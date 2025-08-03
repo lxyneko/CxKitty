@@ -1,0 +1,87 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>超星学习通 - 管理后台登录</title>
+    <style>
+        body {
+            background: #f5f6fa;
+            font-family: '微软雅黑', Arial, sans-serif;
+        }
+        .login-container {
+            width: 350px;
+            margin: 120px auto;
+            background: #fff;
+            box-shadow: 0 0 12px #dcdde1;
+            border-radius: 8px;
+            padding: 32px 28px 24px 28px;
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 18px;
+            color: #273c75;
+            font-size: 26px;
+            font-weight: bold;
+        }
+        .input-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #353b48;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #dcdde1;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+        input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            background: #0097e6;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background: #4078c0;
+        }
+        .error {
+            color: #e84118;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>超星学习通 - 管理后台</h2>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="error">
+            {% for message in messages %}
+              {{ message }}<br>
+            {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        <form method="post">
+            <div class="input-group">
+                <label for="username">用户名</label>
+                <input type="text" name="username" id="username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">密码</label>
+                <input type="password" name="password" id="password" required>
+            </div>
+            <input type="submit" value="登录">
+        </form>
+    </div>
+</body>
+</html>

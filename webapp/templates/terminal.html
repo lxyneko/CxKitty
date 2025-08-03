@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>主脚本实时终端</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/dist/xterm.min.css">
+    <style>
+        body { background: #f5f6fa; }
+        #terminal { width: 80vw; height: 60vh; margin: 40px auto; }
+    </style>
+</head>
+<body>
+    <div id="terminal"></div>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/dist/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
+    <script>
+        const term = new Terminal();
+        term.open(document.getElementById('terminal'));
+        const socket = io();
+        term.onData(data => {
+            socket.emit('input', data);
+        });
+        socket.on('output', function(data) {
+            term.write(data);
+        });
+        // 定时拉取输出
+        setInterval(() => {
+            socket.emit('fetch_output');
+        }, 200);
+    </script>
+</body>
+</html>

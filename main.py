@@ -29,11 +29,25 @@ from logger import Logger
 from resolver import DocumetResolver, MediaPlayResolver, QuestionResolver
 from utils import __version__, ck2dict, sessions_load
 
+
+import os
 api = ChaoXingAPI()
-console = Console(height=config.TUI_MAX_HEIGHT)
+# 判断是否为web模式（非tty）
+IS_WEB = not sys.stdout.isatty() or os.environ.get('CXKITTY_WEB', '') == '1'
+if IS_WEB:
+    console = Console(file=sys.stdout, force_terminal=False)
+else:
+    console = Console(height=config.TUI_MAX_HEIGHT, file=sys.stdout, force_terminal=True)
 logger = Logger("Main")
 
 install(console=console, show_locals=False)
+
+# web模式下将Prompt.ask替换为input
+if IS_WEB:
+    def prompt_ask_patch(*args, **kwargs):
+        prompt = args[0] if args else kwargs.get('prompt', '')
+        return input(prompt)
+    Prompt.ask = prompt_ask_patch
 
 layout = Layout()
 lay_left = Layout(name="Left")
@@ -329,109 +343,111 @@ def fuck_exam_worker(exam: ExamDto, export: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    dialog.logo(console)
-    acc_sessions = sessions_load()
-    # 存在至少一个会话存档
-    if acc_sessions:
-        # 多用户, 允许进行选择
-        if config.MULTI_SESS:
-            dialog.select_session(console, acc_sessions, api)
-        # 单用户, 默认加载第一个会话档
-        else:
-            ck = ck2dict(acc_sessions[0].ck)
-            api.session.ck_load(ck)
-            if not api.accinfo():
-                console.print("[red]会话失效, 尝试重新登录")
-                if not dialog.relogin(console, acc_sessions[0], api):
-                    console.print("[red]重登失败，账号或密码错误")
-                    sys.exit()
-    # 会话存档为空
+    print("脚本已启动")
+dialog.logo(console)
+acc_sessions = sessions_load()
+# 存在至少一个会话存档
+if acc_sessions:
+    # 多用户, 允许进行选择
+    if config.MULTI_SESS:
+        dialog.select_session(console, acc_sessions, api)
+    # 单用户, 默认加载第一个会话档
     else:
-        console.print("[yellow]会话存档为空, 请登录账号")
-        dialog.login(console, api)
-    logger.info("\n-----*任务开始执行*-----")
-    logger.info(f"Ver. {__version__}")
-    dialog.accinfo(console, api)
-    
-    while True:
-        try:
-            # 拉取预先上传的人脸图片
-            if config.FETCH_UPLOADED_FACE is True:
-                if face_url := api.fetch_face():
-                    api.save_face(face_url, config.FACE_PATH)
-            # 拉取该账号下所学的课程
-            classes = api.fetch_classes()
-            # 课程选择交互，支持切换账号
-            command = dialog.select_class(console, classes, acc_sessions, api)
-            # 切换账号逻辑
-            if command == "__switch_account__":
-                acc_sessions = sessions_load()
-                continue
-            # 如果用户选择退出
-            if command == "q":
-                logger.info("\n-----*用户选择退出程序*-----")
-                console.print("[green]感谢使用，再见！")
-                break
-                
-            # 注册验证码 人脸 回调
-            api.session.reg_captcha_after(on_captcha_after)
-            api.session.reg_captcha_before(on_captcha_before)
-            api.session.reg_face_after(on_face_detection_after)
-            api.session.reg_face_before(on_face_detection_before)
-            # 执行课程任务
-            restart_course_select = False
-            for task_obj in ClassSelector(command, classes):
-                # 章节容器 执行章节任务
-                if isinstance(task_obj, ChapterContainer):
-                    fuck_task_worker(task_obj)
+        ck = ck2dict(acc_sessions[0].ck)
+        api.session.ck_load(ck)
+        if not api.accinfo():
+            console.print("[red]会话失效, 尝试重新登录")
+            if not dialog.relogin(console, acc_sessions[0], api):
+                console.print("[red]重登失败，账号或密码错误")
+                sys.exit()
+# 会话存档为空
+else:
+    console.print("[yellow]会话存档为空, 请登录账号")
+    dialog.login(console, api)
+logger.info("\n-----*任务开始执行*-----")
+logger.info(f"Ver. {__version__}")
+dialog.accinfo(console, api)
 
-                # 考试对象 执行考试任务
-                elif isinstance(task_obj, ExamDto):
-                    fuck_exam_worker(task_obj)
+while True:
+    try:
+        # 拉取预先上传的人脸图片
+        if config.FETCH_UPLOADED_FACE is True:
+            if face_url := api.fetch_face():
+                api.save_face(face_url, config.FACE_PATH)
+        # 拉取该账号下所学的课程
+        classes = api.fetch_classes()
+        # 课程选择交互，支持切换账号
+        command = dialog.select_class(console, classes, acc_sessions, api)
+        # 切换账号逻辑
+        if command == "__switch_account__":
+            acc_sessions = sessions_load()
+            continue
+        # 如果用户选择退出
+        if command == "q":
+            logger.info("\n-----*用户选择退出程序*-----")
+            console.print("[green]感谢使用，再见！")
+            break
 
-                # 考试列表 进入二级选择交互
-                elif isinstance(task_obj, list):
-                    exam, export = dialog.select_exam(console, task_obj, api)
-                    if exam is None and export is None:
-                        restart_course_select = True
-                        break  # 跳出 for 循环
-                    fuck_exam_worker(exam, export)
-            if restart_course_select:
-                continue  # 跳回主循环，重新选择课程
+        # 注册验证码 人脸 回调
+        api.session.reg_captcha_after(on_captcha_after)
+        api.session.reg_captcha_before(on_captcha_before)
+        api.session.reg_face_after(on_face_detection_after)
+        api.session.reg_face_before(on_face_detection_before)
+        # 执行课程任务
+        restart_course_select = False
+        for task_obj in ClassSelector(command, classes):
+            console.print("主循环运行中")
+            # 章节容器 执行章节任务
+            if isinstance(task_obj, ChapterContainer):
+                fuck_task_worker(task_obj)
 
-        except ExamCompleted as e:
-            console.print(f"[yellow]考试已完成：{e}，无需重复操作。")
-            logger.info("考试已完成，跳过本次考试。")
-            if Prompt.ask(
-                "是否继续选择其他课程？",
-                console=console,
-                choices=["y", "n"],
-                default="n"
-            ) != "y":
-                break
-        except Exception as err:
-            # 任务异常
-            console.print_exception(show_locals=False)
-            logger.error("\n-----*程序运行异常退出*-----", exc_info=True)
-            if isinstance(err, json.JSONDecodeError):
-                console.print("[red]JSON 解析失败, 可能为账号 ck 失效, 请重新登录该账号 (序号+r)")
-            else:
-                console.print("[bold red]程序运行出现错误, 请截图保存并附上 log 文件在 issue 提交")
-            # 询问是否继续
-            if Prompt.ask(
-                "是否继续选择其他课程？",
-                console=console,
-                choices=["y", "n"],
-                default="n"
-            ) != "y":
-                break
-        except KeyboardInterrupt:
-            # 手动中断程序运行
-            console.print("[yellow]手动中断程序运行")
-            if Prompt.ask(
-                "是否继续选择其他课程？",
-                console=console,
-                choices=["y", "n"],
-                default="n"
-            ) != "y":
-                break
+            # 考试对象 执行考试任务
+            elif isinstance(task_obj, ExamDto):
+                fuck_exam_worker(task_obj)
+
+            # 考试列表 进入二级选择交互
+            elif isinstance(task_obj, list):
+                exam, export = dialog.select_exam(console, task_obj, api)
+                if exam is None and export is None:
+                    restart_course_select = True
+                    break  # 跳出 for 循环
+                fuck_exam_worker(exam, export)
+        if restart_course_select:
+            continue  # 跳回主循环，重新选择课程
+
+    except ExamCompleted as e:
+        console.print(f"[yellow]考试已完成：{e}，无需重复操作。")
+        logger.info("考试已完成，跳过本次考试。")
+        if Prompt.ask(
+            "是否继续选择其他课程？",
+            console=console,
+            choices=["y", "n"],
+            default="n"
+        ) != "y":
+            break
+    except Exception as err:
+        # 任务异常
+        console.print_exception(show_locals=False)
+        logger.error("\n-----*程序运行异常退出*-----", exc_info=True)
+        if isinstance(err, json.JSONDecodeError):
+            console.print("[red]JSON 解析失败, 可能为账号 ck 失效, 请重新登录该账号 (序号+r)")
+        else:
+            console.print("[bold red]程序运行出现错误, 请截图保存并附上 log 文件在 issue 提交")
+        # 询问是否继续
+        if Prompt.ask(
+            "是否继续选择其他课程？",
+            console=console,
+            choices=["y", "n"],
+            default="n"
+        ) != "y":
+            break
+    except KeyboardInterrupt:
+        # 手动中断程序运行
+        console.print("[yellow]手动中断程序运行")
+        if Prompt.ask(
+            "是否继续选择其他课程？",
+            console=console,
+            choices=["y", "n"],
+            default="n"
+        ) != "y":
+            break
