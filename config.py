@@ -5,60 +5,76 @@ from pathlib import Path
 
 import yaml
 
-def get_resource_path(relative_path):
-    """获取资源的绝对路径"""
-    try:
-        # PyInstaller创建临时文件夹,将路径存储在_MEIPASS中
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
 
-# 优先使用外部配置文件
-external_config = Path("config.yml")
-if external_config.exists():
-    config_path = external_config
-else:
-    config_path = get_resource_path("config.yml")
+class Config:
+    def __init__(self, config_file="config.yml"):
+        self.config_path = self._get_config_path(config_file)
+        self.conf = self._load_config()
 
-try:
-    with open(config_path, "r", encoding="utf8") as fp:
-        conf: dict = yaml.load(fp, yaml.FullLoader)
-except FileNotFoundError:
-    conf = {}
-    warnings.warn("Config file not found", RuntimeWarning)
+        self._setup_paths()
+        self._setup_basic_config()
+        self._setup_task_config()
+        self._setup_webapp_config()
 
-# 路径配置
-SESSIONS_PATH = Path(conf.get("session_path", "session"))
-LOGS_PATH = Path(conf.get("log_path", "logs"))
-EXPORT_PATH = Path(conf.get("export_path", "export"))
-FACE_PATH = Path(conf.get("face_image_path", "imgs"))
+    def _get_resource_path(self, relative_path):
+        """获取资源的绝对路径"""
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+        return os.path.join(base_path, relative_path)
 
-# 创建导出目录
-if not EXPORT_PATH.exists():
-    EXPORT_PATH.mkdir(parents=True)
+    def _get_config_path(self, config_file):
+        external_config = Path(config_file)
+        if external_config.exists():
+            return external_config
+        return self._get_resource_path(config_file)
 
-# 基本配置
-MULTI_SESS: bool = conf.get("multi_session", True)
-TUI_MAX_HEIGHT: int = conf.get("tui_max_height", 25)
-MASKACC: bool = conf.get("mask_acc", True)
-FETCH_UPLOADED_FACE: bool = conf.get("fetch_uploaded_face", True)
+    def _load_config(self):
+        try:
+            with open(self.config_path, "r", encoding="utf8") as fp:
+                return yaml.load(fp, yaml.FullLoader)
+        except FileNotFoundError:
+            warnings.warn(f"Config file not found at {self.config_path}", RuntimeWarning)
+            return {}
 
-# 任务配置
-WORK: dict = conf.get("work", {})
-VIDEO: dict = conf.get("video", {})
-DOCUMENT: dict = conf.get("document", {})
-EXAM: dict = conf.get("exam", {})
+    def _setup_paths(self):
+        self.SESSIONS_PATH = Path(self.conf.get("session_path", "session"))
+        self.LOGS_PATH = Path(self.conf.get("log_path", "logs"))
+        self.EXPORT_PATH = Path(self.conf.get("export_path", "export"))
+        self.FACE_PATH = Path(self.conf.get("face_image_path", "imgs"))
 
-# 任务使能配置
-WORK_EN: bool = WORK.get("enable", True)
-VIDEO_EN: bool = VIDEO.get("enable", True)
-DOCUMENT_EN: bool = DOCUMENT.get("enable", True)
+        if not self.EXPORT_PATH.exists():
+            self.EXPORT_PATH.mkdir(parents=True)
 
-# 任务延时配置
-WORK_WAIT: int = WORK.get("wait", 15)
-VIDEO_WAIT: int = VIDEO.get("wait", 15)
-DOCUMENT_WAIT: int = DOCUMENT.get("wait", 15)
+    def _setup_basic_config(self):
+        self.MULTI_SESS: bool = self.conf.get("multi_session", True)
+        self.TUI_MAX_HEIGHT: int = self.conf.get("tui_max_height", 25)
+        self.MASKACC: bool = self.conf.get("mask_acc", True)
+        self.FETCH_UPLOADED_FACE: bool = self.conf.get("fetch_uploaded_face", True)
 
-# 搜索器配置
-SEARCHERS: list = conf.get("searchers", [])
+    def _setup_task_config(self):
+        self.WORK: dict = self.conf.get("work", {})
+        self.VIDEO: dict = self.conf.get("video", {})
+        self.DOCUMENT: dict = self.conf.get("document", {})
+        self.EXAM: dict = self.conf.get("exam", {})
+
+        self.WORK_EN: bool = self.WORK.get("enable", True)
+        self.VIDEO_EN: bool = self.VIDEO.get("enable", True)
+        self.DOCUMENT_EN: bool = self.DOCUMENT.get("enable", True)
+
+        self.WORK_WAIT: int = self.WORK.get("wait", 15)
+        self.VIDEO_WAIT: int = self.VIDEO.get("wait", 15)
+        self.DOCUMENT_WAIT: int = self.DOCUMENT.get("wait", 15)
+
+        self.SEARCHERS: list = self.conf.get("searchers", [])
+
+    def _setup_webapp_config(self):
+        webapp_conf = self.conf.get("webapp", {})
+        self.WEBAPP_ENABLE: bool = webapp_conf.get("enable", False)
+        self.WEBAPP_USERNAME: str = webapp_conf.get("username", "admin")
+        self.WEBAPP_PASSWORD: str = webapp_conf.get("password", "admin123")
+        self.WEBAPP_SECRET_KEY: str = webapp_conf.get("secret_key", "a_very_secret_key")
+
+# 全局配置实例
+config = Config()

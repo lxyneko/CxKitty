@@ -13,7 +13,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.traceback import install
 
-import config
+from config import config
 import dialog
 from cxapi import (
     ChaoXingAPI,
@@ -165,7 +165,7 @@ def fuck_task_worker(chap: ChapterContainer) -> None:
         # 遍历章节列表
         for index in range(len(chap)):
             _show_chapter(index)
-            if chap.is_finished(index) and config.WORK["export"] is False:  # 如果该章节所有任务点做完, 那么就跳过
+            if chap.is_finished(index) and config.WORK.get("export") is False:  # 如果该章节所有任务点做完, 那么就跳过
                 logger.info(
                     f"忽略完成任务点 "
                     f"[{chap.chapters[index].label}:{chap.chapters[index].name}(Id.{chap.chapters[index].chapter_id})]"
