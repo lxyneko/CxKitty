@@ -4,7 +4,7 @@ ENV TZ="Asia/Shanghai"
 
 # 安装必要组件
 RUN apt update && \
-    apt-get -y install libgl1-mesa-glx && \
+    apt-get -y install libgl1-mesa-dev libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 && \
     pip install poetry
 
 # 安装依赖
