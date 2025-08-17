@@ -1,4 +1,5 @@
 #!/bin/python3
+# -*- coding: utf-8 -*-
 import json
 import sys
 import time
@@ -37,7 +38,7 @@ notification_service = None
 try:
     notification_service = config.get_notification_service()
 except Exception as e:
-    logger.warning(f"通知服务初始化失败: {e}")
+    logger.warning(f"Notification service initialization failed: {e}")
 
 install(console=console, show_locals=False)
 
@@ -279,7 +280,11 @@ def fuck_task_worker(chap: ChapterContainer):
             except Exception as e:
                 logger.warning(f"发送课程完成通知失败: {e}")
         
-        time.sleep(5.0)
+        time.sleep(2.0)
+        
+    # 课程完成后的选择
+    choice = dialog.course_completion_choice(console)
+    return choice
 
 
 def fuck_exam_worker(exam: ExamDto, export=False):
@@ -373,29 +378,44 @@ if __name__ == "__main__":
         if config.FETCH_UPLOADED_FACE is True:
             if face_url := api.fetch_face():
                 api.save_face(face_url, config.FACE_PATH)
-        # 拉取该账号下所学的课程
-        classes = api.fetch_classes()
-        # 课程选择交互
-        command = dialog.select_class(console, classes)
+        
         # 注册验证码 人脸 回调
         api.session.reg_captcha_after(on_captcha_after)
         api.session.reg_captcha_before(on_captcha_before)
         api.session.reg_face_after(on_face_detection_after)
         api.session.reg_face_before(on_face_detection_before)
-        # 执行课程任务
-        for task_obj in ClassSelector(command, classes):
-            # 章节容器 执行章节任务
-            if isinstance(task_obj, ChapterContainer):
-                fuck_task_worker(task_obj)
+        
+        # 主循环：支持课程完成后返回课程选择界面
+        while True:
+            # 拉取该账号下所学的课程
+            classes = api.fetch_classes()
+            # 课程选择交互
+            command = dialog.select_class(console, classes)
+            
+            # 执行课程任务
+            should_exit = False
+            for task_obj in ClassSelector(command, classes):
+                # 章节容器 执行章节任务
+                if isinstance(task_obj, ChapterContainer):
+                    choice = fuck_task_worker(task_obj)
+                    if choice == "exit":
+                        should_exit = True
+                        break
+                    elif choice == "continue":
+                        break  # 跳出当前课程循环，返回课程选择
 
-            # 考试对象 执行考试任务
-            elif isinstance(task_obj, ExamDto):
-                fuck_exam_worker(task_obj)
+                # 考试对象 执行考试任务
+                elif isinstance(task_obj, ExamDto):
+                    fuck_exam_worker(task_obj)
 
-            # 考试列表 进入二级选择交互
-            elif isinstance(task_obj, list):
-                exam, export = dialog.select_exam(console, task_obj, api)
-                fuck_exam_worker(exam, export)
+                # 考试列表 进入二级选择交互
+                elif isinstance(task_obj, list):
+                    exam, export = dialog.select_exam(console, task_obj, api)
+                    fuck_exam_worker(exam, export)
+            
+            # 如果用户选择退出，跳出主循环
+            if should_exit:
+                break
 
     except Exception as err:
         # 任务异常

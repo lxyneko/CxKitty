@@ -233,3 +233,20 @@ def select_exam(tui_ctx: Console, exams: list[ClassExamModule], api: ChaoXingAPI
             )
             return exam, export
     
+
+def course_completion_choice(tui_ctx: Console) -> str:
+    """课程完成后的选择对话框
+    Returns:
+        str: 用户选择 ('continue' 返回课程选择界面, 'exit' 退出程序)
+    """
+    while True:
+        choice = Prompt.ask(
+            "课程已完成！返回课程选择界面请输入 [yellow]c[/], 退出程序请输入 [yellow]q[/]",
+            console=tui_ctx
+        ).lower()
+        tui_ctx.print("")
+        if choice == "c":
+            return "continue"
+        elif choice == "q":
+            return "exit"
+    
