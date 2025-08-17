@@ -44,3 +44,29 @@ DOCUMENT_WAIT: int = DOCUMENT.get("wait", 15)
 
 # 搜索器配置
 SEARCHERS: list = conf.get("searchers", [])
+
+# 通知配置
+NOTIFICATION: dict = conf.get("notification", {})
+NOTIFICATION_ENABLED: bool = NOTIFICATION.get("enabled", False)
+NOTIFICATION_PROVIDER: str = NOTIFICATION.get("provider", "")
+NOTIFICATION_URL: str = NOTIFICATION.get("url", "")
+
+# 通知服务实例（延迟初始化）
+_notification_service = None
+
+def get_notification_service():
+    """获取通知服务实例"""
+    global _notification_service
+    if _notification_service is None:
+        from notification import create_notification_service
+        # 如果配置文件中有通知配置，使用配置文件的设置
+        if NOTIFICATION_ENABLED and NOTIFICATION_PROVIDER:
+            config = {
+                'provider': NOTIFICATION_PROVIDER,
+                'url': NOTIFICATION_URL
+            }
+            _notification_service = create_notification_service(config)
+        else:
+            # 否则尝试从config.ini文件加载
+            _notification_service = create_notification_service()
+    return _notification_service

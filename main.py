@@ -32,6 +32,13 @@ api = ChaoXingAPI()
 console = Console(height=config.TUI_MAX_HEIGHT)
 logger = Logger("Main")
 
+# 初始化通知服务
+notification_service = None
+try:
+    notification_service = config.get_notification_service()
+except Exception as e:
+    logger.warning(f"通知服务初始化失败: {e}")
+
 install(console=console, show_locals=False)
 
 layout = Layout()
@@ -262,6 +269,16 @@ def fuck_task_worker(chap: ChapterContainer):
                 border_style="green",
             )
         )
+        
+        # 发送课程完成通知
+        if notification_service:
+            try:
+                message = f"CxKitty 任务完成通知\n课程《{chap.name}》已完成所有任务点"
+                notification_service.send(message)
+                logger.info("课程完成通知已发送")
+            except Exception as e:
+                logger.warning(f"发送课程完成通知失败: {e}")
+        
         time.sleep(5.0)
 
 
@@ -384,6 +401,17 @@ if __name__ == "__main__":
         # 任务异常
         console.print_exception(show_locals=False)
         logger.error("\n-----*程序运行异常退出*-----", exc_info=True)
+        
+        # 发送异常通知
+        if notification_service:
+            try:
+                error_msg = str(err)[:100] + "..." if len(str(err)) > 100 else str(err)
+                message = f"CxKitty 异常通知\n程序运行出现异常: {error_msg}"
+                notification_service.send(message)
+                logger.info("异常通知已发送")
+            except Exception as e:
+                logger.warning(f"发送异常通知失败: {e}")
+        
         if isinstance(err, json.JSONDecodeError):
             console.print("[red]JSON 解析失败, 可能为账号 ck 失效, 请重新登录该账号 (序号+r)")
         else:
@@ -395,3 +423,12 @@ if __name__ == "__main__":
         # 任务执行完毕
         logger.info("\n-----*任务执行完毕, 程序退出*-----")
         console.print("[green]任务已完成, 程序退出")
+        
+        # 发送任务完成通知
+        if notification_service:
+            try:
+                message = "CxKitty 任务完成通知\n所有任务已执行完毕，程序正常退出"
+                notification_service.send(message)
+                logger.info("任务完成通知已发送")
+            except Exception as e:
+                logger.warning(f"发送任务完成通知失败: {e}")
